@@ -215,23 +215,9 @@ handle_journal_recovery() {
 # Function to detect and disable the 'shared_blocks' feature on ext images
 handle_shared_blocks() {
     local image_file="$1"
-    # Silently check if the feature exists. This is the main condition.
     if tune2fs -l "$image_file" 2>/dev/null | grep -q "shared_blocks"; then
-
-        # Record that this feature existed before we remove it.
-        # We'll create a temporary marker file that the metadata section can check later.
-        touch "${REPACK_INFO}/.has_shared_blocks"
-
-        echo -e "${YELLOW}${BOLD}Warning: Incompatible 'shared_blocks' feature detected.${RESET}\n"
-
-        # Use the correct e2fsck command to unshare the blocks. Suppress verbose output.
-        if e2fsck -E unshare_blocks -fy "$image_file" >/dev/null 2>&1; then
-            e2fsck -fy "$image_file" >/dev/null 2>&1
-            echo -e "${GREEN}${BOLD}[✓] 'shared_blocks' feature disabled and filesystem repaired successfully.${RESET}\n"
-        else
-            echo -e "${RED}${BOLD}Error: Failed to unshare blocks. The image may be corrupt.${RESET}"
-            exit 1
-        fi
+        touch "${REPACK_INsFO}/.has_shared_blocks"
+        echo -e "${YELLOW}${BOLD}Note: 'shared_blocks' detected attempting to mount anyway.${RESET}\n"
     fi
 }
 
