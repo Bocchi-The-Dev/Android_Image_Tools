@@ -49,4 +49,4 @@ jobs:
           body: |
             Automated release for version ${{ github.event.inputs.version }}.
 
-            Supported on Ubuntu/Debian and Fedora-based systems.
+            Supported on Ubuntu/Debian, Fedora-based systems and Arch based System.
