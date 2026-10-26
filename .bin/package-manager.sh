@@ -22,24 +22,51 @@ pm_menu() {
     local -a options=("$@")
     local current=0
     local is_first_iteration=true
-    local options_height=${#options[@]}
+    local terminal_lines terminal_columns header_newlines menu_start visible_rows visible_count
+    terminal_lines="$(tput lines 2>/dev/null || printf '24')"
+    terminal_columns="$(tput cols 2>/dev/null || printf '80')"
+    [[ "$terminal_lines" =~ ^[0-9]+$ ]] || terminal_lines=24
+    [[ "$terminal_columns" =~ ^[0-9]+$ ]] || terminal_columns=80
+    (( terminal_columns < 8 )) && terminal_columns=80
+    header_newlines="${header//[^$'\n']/}"
+    menu_start=$((8 + ${#header_newlines}))
+    visible_rows=$((terminal_lines - menu_start - 2))
+    (( visible_rows < 1 )) && visible_rows=1
+    visible_count=${#options[@]}
+    (( visible_count > visible_rows )) && visible_count=$visible_rows
 
     tput civis 2>/dev/null || true
     clear 2>/dev/null || printf '\033[2J\033[H'
     print_banner
-    printf '\n%s\n\n' "$header"
+    printf '\n'
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        printf '%.*s\n' "$((terminal_columns - 1))" "$line"
+    done <<< "$header"
+    printf '\n'
 
     while true; do
         if [ "$is_first_iteration" = false ]; then
-            tput cuu "$options_height" 2>/dev/null || true
+            tput cuu "$visible_count" 2>/dev/null || true
         fi
 
-        for i in "${!options[@]}"; do
+        local first_visible=$((current - visible_count + 1))
+        (( first_visible < 0 )) && first_visible=0
+        local last_visible=$((first_visible + visible_count - 1))
+        (( last_visible >= ${#options[@]} )) && last_visible=$((${#options[@]} - 1))
+
+        for ((i = first_visible; i <= last_visible; i++)); do
             tput el 2>/dev/null || true
+            local option_text="${options[$i]}"
+            option_text="${option_text//$'\n'/ }"
+            option_text="${option_text//$'\r'/ }"
+            option_text="${option_text//$'\t'/ }"
+            if (( ${#option_text} > terminal_columns - 5 )); then
+                printf -v option_text '%.*s' "$((terminal_columns - 5))" "$option_text"
+            fi
             if [ "$i" -eq "$current" ]; then
-                printf '  %b▶ %s%b\n' "$GREEN" "${options[$i]}" "$RESET"
+                printf '  %b▶ %s%b\n' "$GREEN" "$option_text" "$RESET"
             else
-                printf '    %s\n' "${options[$i]}"
+                printf '    %s\n' "$option_text"
             fi
         done
 
@@ -167,35 +194,11 @@ pm_choose_project() {
     return 0
 }
 
-pm_inventory_text() {
-    PM_INVENTORY=$'\nProject: '"${PM_PROJECT#"$SCRIPT_DIR"/}"$'\n'
-    PM_INVENTORY+="Selected: ${#PM_SELECTED[@]} APK(s)"$'\n\n'
-    if [ "${#PM_APK_PATHS[@]}" -eq 0 ]; then
-        PM_INVENTORY+="No APK files found in this project."$'\n'
-    else
-        PM_INVENTORY+="$(printf '%-4s %-32s %-38s %-14s %s' '#' 'APP NAME' 'PACKAGE' 'VERSION' 'SIZE')"$'\n'
-        PM_INVENTORY+="--------------------------------------------------------------------------------------------------------"$'\n'
-        for index in "${!PM_APK_PATHS[@]}"; do
-            local marker=' '
-            pm_is_selected "${PM_APK_PATHS[$index]}" && marker='*'
-            local size
-            size="$(numfmt --to=iec --suffix=B "${PM_APK_SIZES[$index]}" 2>/dev/null || printf '%s B' "${PM_APK_SIZES[$index]}")"
-            local row
-            printf -v row '%-4s %-32.32s %-38.38s %-14.14s %s' \
-                "${marker}${index}" "${PM_APK_LABELS[$index]}" "${PM_APK_PACKAGES[$index]}" \
-                "${PM_APK_VERSIONS[$index]}" "$size"
-            PM_INVENTORY+="$row"$'\n'
-        done
-    fi
-    PM_INVENTORY+=$'\n* indicates selected. APK metadata uses aapt when available; otherwise filenames are shown.'
-}
-
 pm_browse_apks() {
     if [ "${#PM_APK_PATHS[@]}" -eq 0 ]; then
-        pm_inventory_text
         clear 2>/dev/null || true
         print_banner
-        printf '%s\n' "$PM_INVENTORY"
+        echo -e "${YELLOW}No APK files found in this project.${RESET}"
         pm_pause
         return
     fi
@@ -402,7 +405,6 @@ pm_restore_apks() {
 pm_manage_project() {
     pm_scan
     while true; do
-        pm_inventory_text
         local restore_count=0
         if [ -d "$PM_RESTORE_DIR" ]; then
             restore_count="$(find "$PM_RESTORE_DIR" -type f -iname '*.apk' -print | wc -l)"
@@ -417,7 +419,10 @@ pm_manage_project() {
             "Change project"
             "Back"
         )
-        pm_menu "APK Package Manager"$'\n'"$PM_INVENTORY" "${options[@]}"
+        local header
+        printf -v header 'APK Package Manager\nProject: %s\nAPKs found: %s | Selected: %s\nChoose an action:' \
+            "${PM_PROJECT#"$SCRIPT_DIR"/}" "${#PM_APK_PATHS[@]}" "${#PM_SELECTED[@]}"
+        pm_menu "$header" "${options[@]}"
         case "$PM_CHOICE" in
             0) pm_browse_apks ;;
             1) pm_import_list ;;
