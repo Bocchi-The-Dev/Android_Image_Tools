@@ -16,6 +16,7 @@ A powerful, user-friendly Linux script for unpacking and repacking Android image
 
 - **Unpack Android Images**: Extract partitions from `.img` files to editable directories
 - **Modify Files**: Edit system files, apps, configurations, etc.
+- **Manage APK Packages**: Browse APKs in extracted projects, select package lists, and reversibly remove or restore APK files
 - **Repack Images**: Rebuild bootable Android images with your changes
 - **Super Image Support**: Handle complex multi-partition `super.img` files
 - **Filesystem Conversion**: Convert between ext4, EROFS, and F2FS formats
@@ -74,6 +75,7 @@ sudo ./android_image_tools.sh --conf=config.conf
 
 - **Unpack an Android Image**: Extract single partition images
 - **Repack a Directory**: Rebuild images from extracted folders
+- **Manage APK Packages**: Select a project under `EXTRACTED_IMAGES/` or `SUPER_TOOLS/`, browse its APKs, and import or save package-selection lists. Removing selected APKs moves them to `.apk_manager_restore` inside that project; use **Restore APKs** to put them back.
 - **Generate Config File**: Create automation templates
 - **Advanced Tools**: Super image operations
 - **Cleanup Workspace**: Remove temporary files

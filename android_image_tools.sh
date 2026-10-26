@@ -18,6 +18,7 @@ fi
 UNPACK_SCRIPT_PATH="${SCRIPT_DIR}/.bin/unpack-erofs.sh"
 REPACK_SCRIPT_PATH="${SCRIPT_DIR}/.bin/repack-erofs.sh"
 SUPER_SCRIPT_PATH="${SCRIPT_DIR}/.bin/super-tools.sh"
+PACKAGE_MANAGER_PATH="${SCRIPT_DIR}/.bin/package-manager.sh"
 
 WORKSPACE_DIRS=("INPUT_IMAGES" "EXTRACTED_IMAGES" "REPACKED_IMAGES" "SUPER_TOOLS")
 
@@ -1488,16 +1489,17 @@ while true; do
     fi
 
     # Main Menu Reordered
-    main_options=("Unpack an Android Image" "Repack a Directory" "Generate default.conf file" "Advanced Tools" "Cleanup Workspace" "Exit")
+    main_options=("Unpack an Android Image" "Repack a Directory" "Manage APK Packages" "Generate default.conf file" "Advanced Tools" "Cleanup Workspace" "Exit")
     select_option "Select an action:" "${main_options[@]}"; choice=$AIT_CHOICE_INDEX
 
     case $choice in
         0) run_unpack_interactive "$QUIET_MODE";;
         1) run_repack_interactive "$QUIET_MODE";;
-        2) generate_config_file; read -rp $'\nPress Enter to continue...';;
-        3) run_advanced_tools_menu;;
-        4) cleanup_workspace;;
-        5) break;;
+        2) bash "$PACKAGE_MANAGER_PATH";;
+        3) generate_config_file; read -rp $'\nPress Enter to continue...';;
+        4) run_advanced_tools_menu;;
+        5) cleanup_workspace;;
+        6) break;;
     esac
 
 done
