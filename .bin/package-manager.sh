@@ -21,14 +21,21 @@ pm_menu() {
     shift
     local -a options=("$@")
     local current=0
+    local is_first_iteration=true
+    local options_height=${#options[@]}
 
     tput civis 2>/dev/null || true
+    clear 2>/dev/null || printf '\033[2J\033[H'
+    print_banner
+    printf '\n%s\n\n' "$header"
+
     while true; do
-        clear 2>/dev/null || printf '\033[2J\033[H'
-        print_banner
-        printf '\n%s\n\n' "$header"
+        if [ "$is_first_iteration" = false ]; then
+            tput cuu "$options_height" 2>/dev/null || true
+        fi
 
         for i in "${!options[@]}"; do
+            tput el 2>/dev/null || true
             if [ "$i" -eq "$current" ]; then
                 printf '  %b▶ %s%b\n' "$GREEN" "${options[$i]}" "$RESET"
             else
@@ -36,6 +43,7 @@ pm_menu() {
             fi
         done
 
+        is_first_iteration=false
         IFS= read -rsn1 key || key=""
         if [[ "$key" == $'\x1b' ]]; then
             IFS= read -rsn2 key || key=""
